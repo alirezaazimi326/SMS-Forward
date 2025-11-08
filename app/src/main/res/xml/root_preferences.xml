@@ -4,6 +4,17 @@
 
     <PreferenceCategory
         app:iconSpaceReserved="false"
+        app:title="@string/header_app_behavior">
+
+        <SwitchPreferenceCompat
+            android:key="@string/key_enable_foreground_service"
+            android:title="@string/enable_foreground_service"
+            android:summary="@string/enable_foreground_service_summary"
+            app:iconSpaceReserved="false" />
+    </PreferenceCategory>
+
+    <PreferenceCategory
+        app:iconSpaceReserved="false"
         app:title="@string/header_sms">
 
         <SwitchPreferenceCompat

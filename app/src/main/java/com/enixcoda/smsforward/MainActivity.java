@@ -16,6 +16,7 @@ import androidx.core.content.ContextCompat;
 import androidx.preference.EditTextPreference;
 import androidx.preference.PreferenceFragmentCompat;
 import androidx.preference.PreferenceManager;
+import androidx.preference.SwitchPreferenceCompat;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -35,6 +36,8 @@ public class MainActivity extends AppCompatActivity {
         }
 
         checkDefaultSmsApp();
+
+        ensureForegroundServiceState();
 
         //testForwarding();
     }
@@ -94,6 +97,18 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+    private void ensureForegroundServiceState() {
+        SharedPreferences sharedPreferences = PreferenceManager.getDefaultSharedPreferences(this);
+        boolean enableForegroundService = sharedPreferences.getBoolean(getString(R.string.key_enable_foreground_service), false);
+
+        Intent serviceIntent = new Intent(this, SMSForwardForegroundService.class);
+        if (enableForegroundService) {
+            ContextCompat.startForegroundService(this, serviceIntent);
+        } else {
+            stopService(serviceIntent);
+        }
+    }
+
     public static class SettingsFragment extends PreferenceFragmentCompat {
 
         private SharedPreferences sharedPreferences;
@@ -124,6 +139,25 @@ public class MainActivity extends AppCompatActivity {
             updateValues(R.string.key_smtp_user, R.string.key_smtp_user_summary);
             updateValues(R.string.key_from_email, R.string.key_from_email_summary);
             updateValues(R.string.key_to_email, R.string.key_to_email_summary);
+
+            SwitchPreferenceCompat foregroundServicePreference = findPreference(getString(R.string.key_enable_foreground_service));
+            if (foregroundServicePreference != null) {
+                foregroundServicePreference.setOnPreferenceChangeListener((preference, newValue) -> {
+                    boolean enableService = (Boolean) newValue;
+                    Intent serviceIntent = new Intent(requireContext(), SMSForwardForegroundService.class);
+                    if (enableService) {
+                        ContextCompat.startForegroundService(requireContext(), serviceIntent);
+                    } else {
+                        requireContext().stopService(serviceIntent);
+                    }
+                    return true;
+                });
+
+                boolean startService = sharedPreferences.getBoolean(getString(R.string.key_enable_foreground_service), false);
+                if (startService) {
+                    ContextCompat.startForegroundService(requireContext(), new Intent(requireContext(), SMSForwardForegroundService.class));
+                }
+            }
         }
 
         /**

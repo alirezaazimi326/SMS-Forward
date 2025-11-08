@@ -1,6 +1,16 @@
 <resources>
     <string name="app_name">SMS Forward</string>
 
+    <!-- App behavior -->
+    <string name="header_app_behavior">App behavior</string>
+    <string name="key_enable_foreground_service">key_enable_foreground_service</string>
+    <string name="enable_foreground_service">Keep running in background</string>
+    <string name="enable_foreground_service_summary">Show a persistent notification to keep SMS Forward active.</string>
+    <string name="notification_channel_name">SMS Forward background</string>
+    <string name="notification_channel_description">Ensures SMS forwarding continues when the app is closed.</string>
+    <string name="notification_title_service">SMS Forward is active</string>
+    <string name="notification_text_service">Incoming messages will continue to be forwarded.</string>
+
     <!-- SMS -->
     <string name="key_enable_sms">key_enable_sms</string>
     <string name="header_sms">Forward via SMS</string>
