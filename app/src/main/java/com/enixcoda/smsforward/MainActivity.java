@@ -1,24 +1,37 @@
 package com.enixcoda.smsforward;
 
 import android.Manifest;
+import android.app.ActivityManager;
 import android.content.Intent;
-import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.os.Build;
 import android.os.Bundle;
 import android.provider.Telephony;
+import android.text.TextUtils;
 import android.util.Log;
+import android.view.View;
+import android.widget.Button;
+import android.widget.TextView;
 
-import androidx.annotation.StringRes;
+import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
-import androidx.preference.EditTextPreference;
-import androidx.preference.PreferenceFragmentCompat;
-import androidx.preference.PreferenceManager;
-import androidx.preference.SwitchPreferenceCompat;
+
+import java.util.ArrayList;
+import java.util.List;
 
 public class MainActivity extends AppCompatActivity {
+
+    private static final int REQUEST_PERMISSIONS_CODE = 1001;
+
+    private TextView targetNumberView;
+    private TextView allowedSendersView;
+    private TextView permissionsStatusView;
+    private TextView defaultSmsStatusView;
+    private TextView serviceStatusView;
+    private Button requestPermissionsButton;
+    private Button setDefaultSmsButton;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -26,165 +39,160 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
         Log.d("MainActivity", "onCreate: SMS Forwarder started");
 
-        requestRequiredPermissions();
+        bindViews();
+        populateStaticInfo();
 
-        if (savedInstanceState == null) {
-            getSupportFragmentManager()
-                    .beginTransaction()
-                    .replace(R.id.settings, new SettingsFragment())
-                    .commit();
-        }
-
-        checkDefaultSmsApp();
-
+        requestRequiredPermissions(false);
         ensureForegroundServiceState();
-
-        //testForwarding();
+        checkDefaultSmsApp();
+        updateStatusViews();
     }
 
-    /**
-     * Test forwarding SMS to the target destination.
-     */
-    private void testForwarding() {
-        if (BuildConfig.DEBUG) {
-            Log.d("MainActivity", "testForwarding: Testing forwarding");
-        } else {
+    @Override
+    protected void onResume() {
+        super.onResume();
+        updateStatusViews();
+        ensureForegroundServiceState();
+    }
+
+    private void bindViews() {
+        targetNumberView = findViewById(R.id.text_target_number);
+        allowedSendersView = findViewById(R.id.text_allowed_senders);
+        permissionsStatusView = findViewById(R.id.text_permissions_status);
+        defaultSmsStatusView = findViewById(R.id.text_default_sms_status);
+        serviceStatusView = findViewById(R.id.text_service_status);
+        requestPermissionsButton = findViewById(R.id.button_request_permissions);
+        setDefaultSmsButton = findViewById(R.id.button_set_default_sms);
+
+        requestPermissionsButton.setOnClickListener(v -> requestRequiredPermissions(true));
+        setDefaultSmsButton.setOnClickListener(v -> promptSetDefaultSmsApp());
+    }
+
+    private void populateStaticInfo() {
+        targetNumberView.setText(getString(R.string.status_target_number, ForwardingConfig.getTargetNumber()));
+        allowedSendersView.setText(getString(
+                R.string.status_allowed_senders,
+                TextUtils.join(", ", ForwardingConfig.getDisplayAllowedSenders())
+        ));
+    }
+
+    private void updateStatusViews() {
+        updatePermissionStatus();
+        updateDefaultSmsStatus();
+        updateServiceStatus();
+    }
+
+    private void requestRequiredPermissions(boolean forceRequest) {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M) {
             return;
         }
 
-        PreferencesLoader preferencesLoader = new PreferencesLoader(this);
-        EmailPreferences emailPreferences = preferencesLoader.loadEmailPreferences();
-
-        if (emailPreferences.isValid()) {
-            Forwarder.forwardViaEmail("1234567890", "Test message", emailPreferences);
-        }
-    }
-
-    public void requestRequiredPermissions() {
-        Log.d("MainActivity", "requestRequiredPermissions: Checking SMS receive, send, and internet permissions");
-        String[] permissions = {
-                Manifest.permission.RECEIVE_SMS,
-                Manifest.permission.SEND_SMS,
-                Manifest.permission.INTERNET
-        };
-
-        boolean allPermissionsGranted = true;
-        for (String permission : permissions) {
+        List<String> missingPermissions = new ArrayList<>();
+        for (String permission : getRuntimePermissions()) {
             if (ContextCompat.checkSelfPermission(this, permission) != PackageManager.PERMISSION_GRANTED) {
-                Log.d("MainActivity", "requestRequiredPermissions: Permission not granted: " + permission);
-                allPermissionsGranted = false;
-                break;
+                missingPermissions.add(permission);
             }
         }
 
-        if (!allPermissionsGranted) {
-            Log.d("MainActivity", "requestSmsReceivePermission: Requesting necessary permissions");
-            ActivityCompat.requestPermissions(this, permissions, 1);
-        } else {
-            Log.i("MainActivity", "requestSmsReceivePermission: All necessary permissions granted");
+        if (!missingPermissions.isEmpty() && (forceRequest || Build.VERSION.SDK_INT >= Build.VERSION_CODES.M)) {
+            ActivityCompat.requestPermissions(this, missingPermissions.toArray(new String[0]), REQUEST_PERMISSIONS_CODE);
         }
     }
 
-    public void checkDefaultSmsApp() {
-        Log.d("MainActivity", "checkDefaultSmsApp: Checking default SMS app");
-        if (!Telephony.Sms.getDefaultSmsPackage(this).equals(getPackageName())) {
-            Log.d("MainActivity", "checkDefaultSmsApp: Setting default SMS app");
-            Intent intent = new Intent(Telephony.Sms.Intents.ACTION_CHANGE_DEFAULT);
-            intent.putExtra(Telephony.Sms.Intents.EXTRA_PACKAGE_NAME, getPackageName());
-            startActivity(intent);
-        } else {
-            Log.i("MainActivity", "checkDefaultSmsApp: Default SMS app is already set");
+    private String[] getRuntimePermissions() {
+        List<String> permissions = new ArrayList<>();
+        permissions.add(Manifest.permission.RECEIVE_SMS);
+        permissions.add(Manifest.permission.SEND_SMS);
+        permissions.add(Manifest.permission.READ_SMS);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            permissions.add(Manifest.permission.POST_NOTIFICATIONS);
         }
+        return permissions.toArray(new String[0]);
     }
 
     private void ensureForegroundServiceState() {
-        SharedPreferences sharedPreferences = PreferenceManager.getDefaultSharedPreferences(this);
-        boolean enableForegroundService = sharedPreferences.getBoolean(getString(R.string.key_enable_foreground_service), false);
-
         Intent serviceIntent = new Intent(this, SMSForwardForegroundService.class);
-        if (enableForegroundService) {
-            ContextCompat.startForegroundService(this, serviceIntent);
-        } else {
-            stopService(serviceIntent);
+        ContextCompat.startForegroundService(this, serviceIntent);
+    }
+
+    private void updatePermissionStatus() {
+        StringBuilder builder = new StringBuilder();
+        for (String permission : getRuntimePermissions()) {
+            boolean granted = ContextCompat.checkSelfPermission(this, permission) == PackageManager.PERMISSION_GRANTED;
+            builder.append(getFriendlyPermissionName(permission))
+                    .append(": ")
+                    .append(granted ? getString(R.string.status_granted) : getString(R.string.status_denied))
+                    .append('\n');
+        }
+        permissionsStatusView.setText(builder.toString().trim());
+    }
+
+    private void updateDefaultSmsStatus() {
+        String defaultPackage = Telephony.Sms.getDefaultSmsPackage(this);
+        boolean isDefault = getPackageName().equals(defaultPackage);
+        defaultSmsStatusView.setText(getString(
+                R.string.status_default_sms_app,
+                isDefault ? getString(R.string.status_enabled) : getString(R.string.status_disabled)
+        ));
+        setDefaultSmsButton.setVisibility(isDefault ? View.GONE : View.VISIBLE);
+    }
+
+    private void updateServiceStatus() {
+        boolean running = isServiceRunning();
+        serviceStatusView.setText(getString(
+                R.string.status_service_running,
+                running ? getString(R.string.status_running) : getString(R.string.status_not_running)
+        ));
+    }
+
+    private boolean isServiceRunning() {
+        ActivityManager manager = (ActivityManager) getSystemService(ACTIVITY_SERVICE);
+        if (manager == null) {
+            return false;
+        }
+
+        for (ActivityManager.RunningServiceInfo service : manager.getRunningServices(Integer.MAX_VALUE)) {
+            if (SMSForwardForegroundService.class.getName().equals(service.service.getClassName())) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private void checkDefaultSmsApp() {
+        if (!getPackageName().equals(Telephony.Sms.getDefaultSmsPackage(this))) {
+            promptSetDefaultSmsApp();
         }
     }
 
-    public static class SettingsFragment extends PreferenceFragmentCompat {
+    private void promptSetDefaultSmsApp() {
+        Intent intent = new Intent(Telephony.Sms.Intents.ACTION_CHANGE_DEFAULT);
+        intent.putExtra(Telephony.Sms.Intents.EXTRA_PACKAGE_NAME, getPackageName());
+        startActivity(intent);
+    }
 
-        private SharedPreferences sharedPreferences;
-
-        @Override
-        public void onCreatePreferences(Bundle savedInstanceState, String rootKey) {
-            setPreferencesFromResource(R.xml.root_preferences, rootKey);
-            sharedPreferences = PreferenceManager.getDefaultSharedPreferences(requireContext());
-            updateValues(R.string.key_target_sms, R.string.target_summary_sms);
-
-            // Preview telegram values
-            updateValues(R.string.key_target_telegram, R.string.key_target_telegram_summary);
-
-            // Preview Rocket Chat values
-            updateValues(R.string.key_rocket_chat_base_url, R.string.key_rocket_chat_base_url_summary);
-            updateValues(R.string.key_rocket_chat_user_id, R.string.key_rocket_chat_user_id_summary);
-            updateValues(R.string.key_rocket_chat_channel, R.string.channel_title_rocket_chat_summary);
-
-            // Preview Twilio values
-            updateValues(R.string.key_twilio_account_sid, R.string.key_twilio_account_sid_summary);
-            updateValues(R.string.key_twilio_auth_token, R.string.key_twilio_auth_token_summary);
-            updateValues(R.string.key_twilio_from, R.string.key_twilio_from_title);
-            updateValues(R.string.key_twilio_to, R.string.key_twilio_to_title);
-
-            // Preview Email values
-            updateValues(R.string.key_smtp_host, R.string.key_smtp_host_summary);
-            updateValues(R.string.key_smtp_port, R.string.key_smtp_port_summary);
-            updateValues(R.string.key_smtp_user, R.string.key_smtp_user_summary);
-            updateValues(R.string.key_from_email, R.string.key_from_email_summary);
-            updateValues(R.string.key_to_email, R.string.key_to_email_summary);
-
-            SwitchPreferenceCompat foregroundServicePreference = findPreference(getString(R.string.key_enable_foreground_service));
-            if (foregroundServicePreference != null) {
-                foregroundServicePreference.setOnPreferenceChangeListener((preference, newValue) -> {
-                    boolean enableService = (Boolean) newValue;
-                    Intent serviceIntent = new Intent(requireContext(), SMSForwardForegroundService.class);
-                    if (enableService) {
-                        ContextCompat.startForegroundService(requireContext(), serviceIntent);
-                    } else {
-                        requireContext().stopService(serviceIntent);
-                    }
-                    return true;
-                });
-
-                boolean startService = sharedPreferences.getBoolean(getString(R.string.key_enable_foreground_service), false);
-                if (startService) {
-                    ContextCompat.startForegroundService(requireContext(), new Intent(requireContext(), SMSForwardForegroundService.class));
-                }
-            }
+    private String getFriendlyPermissionName(String permission) {
+        if (Manifest.permission.RECEIVE_SMS.equals(permission)) {
+            return getString(R.string.permission_receive_sms);
         }
+        if (Manifest.permission.SEND_SMS.equals(permission)) {
+            return getString(R.string.permission_send_sms);
+        }
+        if (Manifest.permission.READ_SMS.equals(permission)) {
+            return getString(R.string.permission_read_sms);
+        }
+        if (Manifest.permission.POST_NOTIFICATIONS.equals(permission)) {
+            return getString(R.string.permission_post_notifications);
+        }
+        return permission;
+    }
 
-        /**
-         * Updates the summary of an EditTextPreference with the current value from SharedPreferences.
-         *
-         * @param prefKeyRes            The resource ID of the preference key.
-         * @param prefDefaultSummaryRes The resource ID of the default summary text.
-         */
-        public void updateValues(@StringRes int prefKeyRes, @StringRes int prefDefaultSummaryRes) {
-            final String prefKey = getString(prefKeyRes);
-            String prefSummaryDefault = getString(prefDefaultSummaryRes);
-            String prefSummaryValue = sharedPreferences.getString(prefKey, prefSummaryDefault);
-
-            if (prefSummaryValue.equals("")) {
-                prefSummaryValue = prefSummaryDefault;
-            }
-
-            final EditTextPreference editTextPreference = (EditTextPreference) findPreference(prefKey);
-            editTextPreference.setSummary(prefSummaryValue);
-
-            editTextPreference.setOnPreferenceChangeListener((preference, o) -> {
-
-                String newValue = o.toString();
-                sharedPreferences.edit().putString(prefKey, newValue).apply();
-                editTextPreference.setSummary(newValue);
-                return true;
-            });
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        if (requestCode == REQUEST_PERMISSIONS_CODE) {
+            updatePermissionStatus();
+            ensureForegroundServiceState();
         }
     }
 }

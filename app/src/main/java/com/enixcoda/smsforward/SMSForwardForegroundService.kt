@@ -9,6 +9,7 @@ import android.os.Build
 import android.os.IBinder
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
+import androidx.core.content.ContextCompat
 
 /**
  * Foreground service that keeps the SMS forwarding broadcast receiver active
@@ -52,6 +53,21 @@ class SMSForwardForegroundService : Service() {
     override fun onDestroy() {
         stopForeground(true)
         super.onDestroy()
+        restartService()
+    }
+
+    override fun onTaskRemoved(rootIntent: Intent?) {
+        super.onTaskRemoved(rootIntent)
+        restartService()
+    }
+
+    private fun restartService() {
+        val restartIntent = Intent(applicationContext, SMSForwardForegroundService::class.java)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            ContextCompat.startForegroundService(applicationContext, restartIntent)
+        } else {
+            applicationContext.startService(restartIntent)
+        }
     }
 
     private fun createNotificationChannel() {
