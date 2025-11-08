@@ -5,12 +5,12 @@ plugins {
 
 android {
     namespace 'com.enixcoda.smsforward'
-    compileSdk 33
+    compileSdk 34
 
     defaultConfig {
         applicationId "com.enixcoda.smsforward"
         minSdk 25
-        targetSdk 33
+        targetSdk 34
         versionCode 6
         versionName "2.0.4"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
