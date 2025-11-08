@@ -1,94 +1,34 @@
 <resources>
     <string name="app_name">SMS Forward</string>
 
-    <!-- App behavior -->
-    <string name="header_app_behavior">App behavior</string>
-    <string name="key_enable_foreground_service">key_enable_foreground_service</string>
-    <string name="enable_foreground_service">Keep running in background</string>
-    <string name="enable_foreground_service_summary">Show a persistent notification to keep SMS Forward active.</string>
+    <string name="description">This app automatically forwards SMS messages from the approved senders to the fixed target number.</string>
+
+    <string name="status_target_label">Forwarding to:</string>
+    <string name="status_allowed_senders_label">Allowed senders:</string>
+    <string name="status_permissions_label">Required permissions:</string>
+    <string name="status_default_sms_label">Default SMS app status:</string>
+    <string name="status_service_label">Background service:</string>
+    <string name="status_service_hint">The background service keeps forwarding active even when the app is closed or after a device reboot.</string>
+
+    <string name="permission_receive_sms">Receive SMS</string>
+    <string name="permission_send_sms">Send SMS</string>
+    <string name="permission_read_sms">Read SMS</string>
+    <string name="permission_post_notifications">Post notifications</string>
+
+    <string name="permission_status_line">%1$s: %2$s</string>
+    <string name="status_granted">Granted</string>
+    <string name="status_missing">Missing</string>
+
+    <string name="status_default_sms_true">This app is set as the default SMS application.</string>
+    <string name="status_default_sms_false">This app is not the default SMS application.</string>
+
+    <string name="status_service_running">Running</string>
+    <string name="status_service_missing_permissions">Waiting for SMS permissions</string>
+
+    <string name="button_set_default_sms">Set as default SMS app</string>
+
     <string name="notification_channel_name">SMS Forward background</string>
     <string name="notification_channel_description">Ensures SMS forwarding continues when the app is closed.</string>
     <string name="notification_title_service">SMS Forward is active</string>
-    <string name="notification_text_service">Incoming messages will continue to be forwarded.</string>
-
-    <!-- SMS -->
-    <string name="key_enable_sms">key_enable_sms</string>
-    <string name="header_sms">Forward via SMS</string>
-    <string name="enable_sms">Enable SMS</string>
-    <string name="key_target_sms">key_sms_target</string>
-    <string name="target_title_sms">Target phone number</string>
-    <string name="target_summary_sms">example: +14161234567</string>
-
-    <!-- Telegram -->
-    <string name="key_enable_telegram">key_enable_telegram</string>
-    <string name="header_telegram">Forward via Telegram</string>
-    <string name="enable_telegram">Enable Telegram</string>
-    <string name="key_target_telegram">key_target_telegram</string>
-    <string name="key_target_telegram_summary">Eg. 123456789</string>
-    <string name="key_telegram_apikey">key_telegram_apikey</string>
-    <string name="target_title_telegram">Target Telegram ID</string>
-    <string name="title_telegram_apikey">Telegram API KEY</string>
-
-    <!-- Rocket.Chat -->
-    <string name="key_enable_rocket_chat">key_enable_rocket_chat</string>
-    <string name="header_rocket_chat">Forward via Rocket.Chat</string>
-    <string name="enable_rocket_chat">Enable Rocket.Chat</string>
-    <string name="key_rocket_chat_base_url">key_rocket_chat_base_url</string>
-    <string name="key_rocket_chat_base_url_title">Base URL</string>
-    <string name="key_rocket_chat_base_url_summary">Eg. http://chat.mycompany.com:3000</string>
-    <string name="key_rocket_chat_user_id">key_target_rocket_chat</string>
-    <string name="key_rocket_chat_user_id_title">User ID</string>
-    <string name="key_rocket_chat_user_id_summary">Eg. Pw224kx5x3R8b</string>
-    <string name="key_rocket_chat_auth_key">key_rocket_chat_apikey</string>
-    <string name="key_rocket_chat_auth_key_title">Auth Key</string>
-    <string name="key_rocket_chat_channel">key_rocket_chat_channel</string>
-    <string name="channel_title_rocket_chat">Channel Name</string>
-    <string name="channel_title_rocket_chat_summary">eg. #my-sms</string>
-
-    <!-- Twilio -->
-    <string name="key_enable_twilio">key_enable_twilio</string>
-    <string name="header_twilio">Forward SMS via Twilio</string>
-    <string name="enable_twilio">Enable Twilio</string>
-    <string name="key_twilio_account_sid">key_twilio_account_sid</string>
-    <string name="key_twilio_account_sid_title">Account SID</string>
-    <string name="key_twilio_account_sid_summary">ACaaaaaaaaaaa</string>
-    <string name="key_twilio_auth_token">key_twilio_auth_token</string>
-    <string name="key_twilio_auth_token_title">Auth Token</string>
-    <string name="key_twilio_auth_token_summary">SMbbbbbbbbbbbb</string>
-    <string name="key_twilio_from">key_twilio_from</string>
-    <string name="key_twilio_from_title">Twilio registered sender number</string>
-    <string name="key_twilio_to">key_twilio_to</string>
-    <string name="key_twilio_to_title">Destination phone numbers(s)</string>
-
-    <!-- Web -->
-    <string name="key_enable_web">key_enable_web</string>
-    <string name="header_web">Forward via Web</string>
-    <string name="enable_web">Enable Web</string>
-    <string name="key_target_web">key_target_web</string>
-    <string name="target_title_web">Target Web URL</string>
-    <string name="target_summary_web">Example: https://site.com/api\nThis app will send POST request on receive SMS, request body example:\n{ "from": "10000", "message": "Hello" }</string>
-
-    <!-- Email -->
-    <string name="key_enable_email">key_enable_email</string>
-    <string name="header_email">Forward via Email</string>
-    <string name="enable_email">Enable Email</string>
-    <string name="key_smtp_host">key_smtp_host</string>
-    <string name="key_smtp_host_title">SMTP Host</string>
-    <string name="key_smtp_host_summary">Eg. smtp.gmail.com</string>
-    <string name="key_smtp_port">key_smtp_port</string>
-    <string name="key_smtp_port_title">SMTP Port</string>
-    <string name="key_smtp_port_summary">Eg. 587</string>
-    <string name="key_smtp_user">key_smtp_user</string>
-    <string name="key_smtp_user_title">SMTP User</string>
-    <string name="key_smtp_user_summary">Eg. user@email.com</string>
-    <string name="key_smtp_password">key_smtp_password</string>
-    <string name="key_smtp_password_title">SMTP Password</string>
-    <string name="key_smtp_password_summary">Eg. password</string>
-    <string name="key_from_email">key_from_email</string>
-    <string name="key_from_email_title">From Email</string>
-    <string name="key_from_email_summary">Eg. me@email.com</string>
-    <string name="key_to_email">key_to_email</string>
-    <string name="key_to_email_title">To Email</string>
-    <string name="key_to_email_summary">Eg. destination@email.com</string>
-
+    <string name="notification_text_service">Incoming messages from the trusted senders will be forwarded automatically.</string>
 </resources>
